@@ -32,10 +32,10 @@ jobs:
         shell: bash
         run: |
           SMOKE='[
-            {"fqbn":"arduino:zephyr:unoq:link_mode=static","core":"arduino:zephyr","deps":"Arduino_RouterBridge"}
+            {"fqbn":"arduino:zephyr:unoq:link_mode=static","core":"arduino:zephyr@0.55.2","deps":"Arduino_RouterBridge@0.4.3"}
           ]'
           FULL='[
-            {"fqbn":"arduino:zephyr:unoq:link_mode=static","core":"arduino:zephyr","deps":"Arduino_RouterBridge"}
+            {"fqbn":"arduino:zephyr:unoq:link_mode=static","core":"arduino:zephyr@0.55.2","deps":"Arduino_RouterBridge@0.4.3"}
           ]'
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "fqbns=$(echo "$SMOKE" | jq -c .)" >> "$GITHUB_OUTPUT"
@@ -61,12 +61,34 @@ jobs:
             "https://downloads.arduino.cc/arduino-cli/arduino-cli_${ARDUINO_CLI_VERSION}_Linux_64bit.tar.gz" \
             | tar xz -C "${HOME}/.arduino-ci/bin" arduino-cli
 
+      # Versions are pinned so a red nightly means a real incompatibility rather
+      # than an upstream release landing under us. Bump them deliberately.
+      #
+      # The Zephyr core pulls a ~1 GB toolchain from a GitHub release, which
+      # outruns arduino-cli's default HTTP timeout often enough to matter, and
+      # `core install` has no retry of its own.
       - name: Install core and dependencies
         run: |
+          arduino-cli config init --overwrite
+          arduino-cli config set network.connection_timeout 600s
           arduino-cli core update-index
-          arduino-cli core install "${{ matrix.board.core }}"
+
+          retry() {
+            local n=1
+            until "$@"; do
+              if [ "${n}" -ge 3 ]; then
+                echo "::error::'$*' failed after ${n} attempts"
+                return 1
+              fi
+              echo "attempt ${n} of 3 failed; retrying in $((n * 30))s"
+              sleep $((n * 30))
+              n=$((n + 1))
+            done
+          }
+
+          retry arduino-cli core install "${{ matrix.board.core }}"
           for dep in ${{ matrix.board.deps }}; do
-            arduino-cli lib install "$dep"
+            retry arduino-cli lib install "$dep"
           done
 
       # The repo root is the library, so it is passed with --library directly
