@@ -1,21 +1,148 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+  schedule:
+    # Full FQBN matrix nightly. Each core is a separate multi-hundred-MB
+    # toolchain download, which is not worth paying on every pull request.
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+
+env:
+  ARDUINO_CLI_VERSION: 1.5.1
+  ARDUINO_LINT_VERSION: 1.3.0
 
 jobs:
-  check:
+  # The FQBN list lives here and nowhere else. Adding a board is one line.
+  # `smoke` boards run on every PR; the rest run nightly and on demand.
+  boards:
+    runs-on: ubuntu-latest
+    outputs:
+      fqbns: ${{ steps.pick.outputs.fqbns }}
+    steps:
+      - id: pick
+        shell: bash
+        run: |
+          SMOKE='[
+            {"fqbn":"arduino:zephyr:unoq:link_mode=static","core":"arduino:zephyr@0.55.2","deps":"Arduino_RouterBridge@0.4.3"}
+          ]'
+          FULL='[
+            {"fqbn":"arduino:zephyr:unoq:link_mode=static","core":"arduino:zephyr@0.55.2","deps":"Arduino_RouterBridge@0.4.3"}
+          ]'
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "fqbns=$(echo "$SMOKE" | jq -c .)" >> "$GITHUB_OUTPUT"
+          else
+            echo "fqbns=$(echo "$FULL" | jq -c .)" >> "$GITHUB_OUTPUT"
+          fi
+
+  compile:
+    needs: boards
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        board: ${{ fromJSON(needs.boards.outputs.fqbns) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install arduino-cli
+        run: |
+          mkdir -p "${HOME}/.arduino-ci/bin"
+          echo "${HOME}/.arduino-ci/bin" >> "$GITHUB_PATH"
+          curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors \
+            "https://downloads.arduino.cc/arduino-cli/arduino-cli_${ARDUINO_CLI_VERSION}_Linux_64bit.tar.gz" \
+            | tar xz -C "${HOME}/.arduino-ci/bin" arduino-cli
+
+      # Versions are pinned so a red nightly means a real incompatibility rather
+      # than an upstream release landing under us. Bump them deliberately.
+      #
+      # The Zephyr core pulls a ~1 GB toolchain from a GitHub release, which
+      # outruns arduino-cli's default HTTP timeout often enough to matter, and
+      # `core install` has no retry of its own.
+      - name: Install core and dependencies
+        run: |
+          arduino-cli config init --overwrite
+          arduino-cli config set network.connection_timeout 600s
+          arduino-cli core update-index
+
+          retry() {
+            local n=1
+            until "$@"; do
+              if [ "${n}" -ge 3 ]; then
+                echo "::error::'$*' failed after ${n} attempts"
+                return 1
+              fi
+              echo "attempt ${n} of 3 failed; retrying in $((n * 30))s"
+              sleep $((n * 30))
+              n=$((n + 1))
+            done
+          }
+
+          retry arduino-cli core install "${{ matrix.board.core }}"
+          for dep in ${{ matrix.board.deps }}; do
+            retry arduino-cli lib install "$dep"
+          done
+
+      # The repo root is the library, so it is passed with --library directly
+      # rather than installed into the sketchbook first.
+      - name: Compile examples
+        run: |
+          for sketch in examples/*/; do
+            echo "::group::compile $(basename "${sketch}") for ${{ matrix.board.fqbn }}"
+            arduino-cli compile --fqbn "${{ matrix.board.fqbn }}" \
+              --library . --warnings default "${sketch}"
+            echo "::endgroup::"
+          done
+
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate repository structure
+
+      - name: Install arduino-lint
         run: |
-          echo "Checking required files..."
-          test -f README.md && echo "✅ README.md"
-          test -f LICENSE && echo "✅ LICENSE"
-          test -f CODE_OF_CONDUCT.md && echo "✅ CODE_OF_CONDUCT.md"
-          test -f CONTRIBUTING.md && echo "✅ CONTRIBUTING.md"
-          echo "All checks passed"
+          mkdir -p "${HOME}/.arduino-ci/bin"
+          echo "${HOME}/.arduino-ci/bin" >> "$GITHUB_PATH"
+          curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors \
+            "https://downloads.arduino.cc/arduino-lint/arduino-lint_${ARDUINO_LINT_VERSION}_Linux_64bit.tar.gz" \
+            | tar xz -C "${HOME}/.arduino-ci/bin" arduino-lint
+
+      # These are the rules the Library Manager applies at submission time.
+      # Only errors block registration, but warnings here are still worth fixing.
+      - name: Lint as a Library Manager submission
+        run: arduino-lint --project-type library --library-manager submit --compliance strict
+
+      # The registry rejects these outright, and a vendored source tree is
+      # exactly the sort of thing that smuggles one in.
+      - name: Check registry content restrictions
+        run: |
+          fail=0
+          if [ -n "$(find . -type l -not -path './.git/*')" ]; then
+            echo "ERROR: symlinks are not allowed in a Library Manager submission:"
+            find . -type l -not -path './.git/*'
+            fail=1
+          fi
+          if [ -n "$(find . -name '*.exe' -not -path './.git/*')" ]; then
+            echo "ERROR: .exe files are not allowed:"
+            find . -name '*.exe' -not -path './.git/*'
+            fail=1
+          fi
+          if [ -e .development ]; then
+            echo "ERROR: a .development file blocks registration."
+            fail=1
+          fi
+          if [ -e .gitmodules ]; then
+            echo "ERROR: submodules are unsupported; the published archive would"
+            echo "       contain an empty directory in their place."
+            fail=1
+          fi
+          echo "Packaged size: $(du -sh --exclude=.git . | cut -f1)"
+          exit $fail

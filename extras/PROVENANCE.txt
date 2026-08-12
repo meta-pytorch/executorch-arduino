@@ -1,0 +1,26 @@
+This library is generated, not hand-written. Everything under src/ was copied
+out of ExecuTorch by examples/arduino/build_arduino_library.sh, and the
+model.h in each example was converted from a .pte exported by that same
+checkout. Do not edit either by hand; regenerate instead.
+
+executorch:  https://github.com/pytorch/executorch
+commit:      b897b1914b97b77b90f9d1cee0e0f9dd25f445b3 (tree had uncommitted changes under examples/arduino)
+CMSIS-NN:    dbf45dbfcc515421dd6099037d3e2637b90748c8
+op set:      aten::add.out,aten::mul.out,aten::sub.out,aten::div.out,aten::view_copy.out,aten::permute_copy.out,aten::clone.out,aten::cat.out,aten::slice_copy.Tensor_out,aten::_softmax.out,aten::mean.out,aten::relu.out,dim_order_ops::_clone_dim_order.out,dim_order_ops::_to_dim_order_copy.out
+kernels:     32
+
+The commit above is not decoration. Cortex-M operator schemas change between
+ExecuTorch releases, and a model exported against one commit fails at
+Method::execute against a library built from another - it loads fine, resolves
+every operator, then returns InvalidProgram (0x23). The library and the models
+it ships must come from this one commit.
+
+To regenerate:
+
+  git -C <executorch> checkout $(cat executorch_pin.txt)
+  ./install_executorch.sh                     # so the exporter matches too
+  examples/arduino/build_arduino_library.sh
+
+To move to a newer ExecuTorch, bump executorch_pin.txt, regenerate, and
+re-export the example models in the same change. Override the op set with
+ROOT_OPS="aten::foo.out,..." or ALL_OPS=1.

@@ -1,112 +1,131 @@
-# ExecuTorch Arduino Library
+# ExecuTorch for Arduino
 
 [![CI](https://github.com/meta-pytorch/executorch-arduino/actions/workflows/ci.yml/badge.svg)](https://github.com/meta-pytorch/executorch-arduino/actions/workflows/ci.yml)
 
-Run PyTorch models on Arduino microcontrollers using [ExecuTorch](https://github.com/pytorch/executorch).
-
-## Overview
-
-This repository contains the ExecuTorch runtime packaged as an Arduino library.
-It enables running PyTorch models exported with ExecuTorch on resource-constrained
-microcontrollers via the Arduino IDE or `arduino-cli`.
+Run PyTorch models on Arduino using [ExecuTorch](https://github.com/pytorch/executorch).
 
 ```
-PyTorch Model ──► torch.export ──► .pte file ──► model.h (C array)
-                                                      │
-                                          Arduino Sketch (.ino)
-                                          #include <ExecuTorchArduino.h>
-                                          #include "model.h"
-                                                      │
-                                          arduino-cli compile ──► Upload ──► Runs on board
+PyTorch model ──► torch.export ──► .pte ──► model.h (C array)
+                                              │
+                                    Arduino sketch (.ino)
+                                      #include <ExecuTorch.h>
+                                      #include "model.h"
+                                              │
+                                    compile ──► upload ──► runs on the board
 ```
 
-## Supported Boards
+## Supported boards
 
 | Board | MCU | Status |
-|-------|-----|--------|
-| Arduino Uno Q | STM32U585 (Cortex-M33) | ✅ Tested |
-| Arduino Nano 33 BLE | nRF52840 (Cortex-M4F) | Planned |
-| Arduino Giga R1 WiFi | STM32H747 (Cortex-M7) | Planned |
-| Arduino Portenta H7 | STM32H747 (Cortex-M7) | Planned |
+|---|---|---|
+| Arduino UNO Q | STM32U585 (Cortex-M33) | Supported — CI-compiled and hardware-verified |
 
-## Quick Start
+Nothing else, and the reason is worth stating plainly: ExecuTorch requires C++17, and
+every other official Arduino ARM core (`mbed_*`, `renesas_*`, `samd`) currently bundles
+`arm-none-eabi-gcc 7.2.1` from 2017, which rejects valid C++17 that ExecuTorch relies on.
+The UNO Q's `arduino:zephyr` core uses a Zephyr SDK toolchain (GCC 12.2.0) instead, which
+is why it works. This is a constraint of the board packages, not of this library.
 
-### Installation
+## Install
 
-Install via Arduino Library Manager (coming soon) or manually:
+From the Arduino IDE: **Tools → Manage Libraries…**, search for `ExecuTorch`.
+
+Or manually:
 
 ```bash
-git clone https://github.com/meta-pytorch/executorch-arduino.git
-cp -r executorch-arduino ~/Arduino/libraries/ExecuTorchArduino
+git clone https://github.com/meta-pytorch/executorch-arduino.git \
+  ~/Arduino/libraries/ExecuTorch
 ```
 
-### Usage
+The UNO Q also needs `Arduino_RouterBridge` for `Serial`; install it from Library Manager.
+Without it the core stops the build with an explicit `#error`.
+
+## Use
 
 ```cpp
-#include <ExecuTorchArduino.h>
-#include "model.h"
+#include <ExecuTorch.h>
+#include "model.h"        // generated from your .pte
 
-using executorch::runtime::Program;
-using executorch::runtime::Result;
 using executorch::extension::BufferDataLoader;
+using executorch::runtime::Program;
 
 void setup() {
   Serial.begin(115200);
   executorch::runtime::runtime_init();
 
   auto loader = BufferDataLoader(model_pte, sizeof(model_pte));
-  Result<Program> program = Program::load(&loader);
-  // ... set inputs, execute, read outputs
-}
-
-void loop() {
-  delay(2000);
+  auto program = Program::load(&loader);
+  Serial.println(program.ok() ? "loaded" : "failed");
 }
 ```
 
-### Exporting a Model
+Start from `examples/HelloExecuTorch`, then `AddModel` for a full inference pass, then
+`KeywordSpotting` for a quantized DS-CNN using CMSIS-NN kernels.
 
-Export a PyTorch model to `.pte` format and convert to a C header:
-
-```bash
-# Export model
-python -c "
-import torch
-from executorch.exir import to_edge
-from torch.export import export
-class Add(torch.nn.Module):
-    def forward(self, x): return x + 1.0
-et = to_edge(export(Add().eval(), (torch.tensor([1.,2.,3.]),))).to_executorch()
-with open('add.pte','wb') as f: f.write(bytes(et.buffer))"
-
-# Convert to C header
-python pte_to_header.py -p add.pte -o model.h
-```
-
-### Compile and Upload
+**Compile with `link_mode=static`.** The UNO Q defaults to Dynamic, which builds the
+sketch as a Zephyr loadable extension; a library this size will not start that way and
+prints nothing at all.
 
 ```bash
-arduino-cli compile --fqbn arduino:zephyr:unoq MySketch
-arduino-cli upload  --fqbn arduino:zephyr:unoq -p /dev/cu.usbmodem* MySketch
-arduino-cli monitor -p /dev/cu.usbmodem* --config baudrate=115200
+arduino-cli compile --fqbn arduino:zephyr:unoq:link_mode=static examples/AddModel
 ```
 
-## Examples
+ExecuTorch's own diagnostics reach your sketch through a weak hook, so the library never
+has to depend on `Serial`. Implement it or lose every runtime error message:
 
-- **HelloExecuTorch** — Minimal example loading a model and printing output
-- **AddModel** — Simple `x + 1.0` model demonstrating portable ops
-- **KeywordSpotting** — DS-CNN keyword detection with CMSIS-NN acceleration
+```cpp
+extern "C" void et_arduino_log(const char* msg) {
+  Serial.print("ET| ");
+  Serial.println(msg);
+}
+```
 
-## Documentation
+## Bringing your own model
 
-- [ExecuTorch Documentation](https://pytorch.org/executorch/)
-- [Arduino CLI Reference](https://arduino.github.io/arduino-cli/)
-- [Model Export Guide](https://pytorch.org/executorch/stable/export-overview.html)
+```bash
+python extras/tools/export_model.py --help      # PyTorch model  -> .pte
+python extras/tools/pte_to_header.py --help     # .pte           -> model.h
+```
 
-## Contributing
+The exporter and the runtime must come from the same ExecuTorch commit. A `.pte` built
+against a different one loads, resolves every operator, and then fails inside
+`Method::execute` with `InvalidProgram (0x23)` — nothing in that error says why. The
+commit this library was generated from is in `executorch_pin.txt`.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for how to contribute to this project.
+## This repository is generated
+
+Everything under `src/` and `examples/` is build output from
+[`examples/arduino/build_arduino_library.sh`](https://github.com/pytorch/executorch/blob/main/examples/arduino/build_arduino_library.sh)
+in the ExecuTorch tree. It lives in a separate repository because the Arduino Library
+Manager requires `library.properties` at the repository root.
+
+Do not send patches against `src/` — they will be overwritten by the next sync. Fix
+things upstream in `pytorch/executorch` under `examples/arduino/`, then run the
+**Sync from ExecuTorch** workflow here.
+
+- `executorch_pin.txt` — the ExecuTorch commit this tree was generated from
+- `extras/PROVENANCE.txt` — that commit, the CMSIS-NN revision, the operator set, and the
+  kernel count
+- `extras/THIRD_PARTY_LICENSES/` — licenses for the vendored CMSIS-NN, FlatBuffers, and
+  flatcc sources
+- `extras/tools/` — the generator and the model-conversion scripts
+
+## Size
+
+Measured for `arduino:zephyr:unoq:link_mode=static`, against 786,432 bytes of flash and
+131,072 bytes of RAM:
+
+| Example | Flash | RAM |
+|---|---|---|
+| HelloExecuTorch | 472,756 (60%) | 3,060 (2%) |
+| AddModel | 507,688 (64%) | 11,252 (8%) |
+| KeywordSpotting | 563,480 (71%) | 33,780 (25%) |
+
+Registering every portable operator instead of the default set costs about 1.58 MB of
+text, which is roughly twice this board's flash. The operator set is chosen at generation
+time; `extras/PROVENANCE.txt` records which one produced this build.
 
 ## License
 
-This project is licensed under the BSD License - see the [LICENSE](LICENSE) file for details.
+BSD-3-Clause, matching ExecuTorch. See [LICENSE](LICENSE), and
+`extras/THIRD_PARTY_LICENSES/` for the vendored dependencies.
