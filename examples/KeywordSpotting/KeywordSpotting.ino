@@ -54,7 +54,7 @@ static const char* kLabels[] = {
     "silence", "unknown", "yes", "no", "up", "down",
     "left", "right", "on", "off", "stop", "go"};
 
-alignas(16) static uint8_t method_pool[64 * 1024];
+alignas(16) static uint8_t method_pool[40 * 1024];
 
 // ExecuTorch logs go to a weak hook so the library does not depend on Serial.
 // Without this the runtime's own diagnostics -- allocation failures, operator
