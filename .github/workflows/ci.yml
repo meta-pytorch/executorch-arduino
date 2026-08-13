@@ -115,10 +115,12 @@ jobs:
             "https://downloads.arduino.cc/arduino-lint/arduino-lint_${ARDUINO_LINT_VERSION}_Linux_64bit.tar.gz" \
             | tar xz -C "${HOME}/.arduino-ci/bin" arduino-lint
 
-      # These are the rules the Library Manager applies at submission time.
-      # Only errors block registration, but warnings here are still worth fixing.
-      - name: Lint as a Library Manager submission
-        run: arduino-lint --project-type library --library-manager submit --compliance strict
+      # `update`, not `submit`: submit mode requires the name to be absent from
+      # the index, so it only passes before a library is first accepted. This one
+      # is already published, and update mode is what applies to a new release of
+      # an existing library.
+      - name: Lint as a Library Manager release
+        run: arduino-lint --project-type library --library-manager update --compliance strict
 
       # The registry rejects these outright, and a vendored source tree is
       # exactly the sort of thing that smuggles one in.
