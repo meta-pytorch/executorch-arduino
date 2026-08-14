@@ -4,10 +4,16 @@ model.h in each example was converted from a .pte exported by that same
 checkout. Do not edit either by hand; regenerate instead.
 
 executorch:  https://github.com/pytorch/executorch
-commit:      b897b1914b97b77b90f9d1cee0e0f9dd25f445b3 (tree had uncommitted changes under examples/arduino)
+commit:      856aacb2fb79c8dfb52d2a747e5483a514af79d6
 CMSIS-NN:    dbf45dbfcc515421dd6099037d3e2637b90748c8
 op set:      aten::add.out,aten::mul.out,aten::sub.out,aten::div.out,aten::view_copy.out,aten::permute_copy.out,aten::clone.out,aten::cat.out,aten::slice_copy.Tensor_out,aten::_softmax.out,aten::mean.out,aten::relu.out,dim_order_ops::_clone_dim_order.out,dim_order_ops::_to_dim_order_copy.out
 kernels:     32
+
+Deviation from that commit: src/executorch/runtime/executor/method.cpp is held at
+the content from the previous pin (b897b1914b). pytorch/executorch#20981 changed
+resolve_operator's temp-allocator fallback between the two pins; that change is
+excluded here pending validation, so this tree is NOT a byte-faithful copy of the
+commit above. Everything else is.
 
 The commit above is not decoration. Cortex-M operator schemas change between
 ExecuTorch releases, and a model exported against one commit fails at
