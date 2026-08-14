@@ -37,8 +37,43 @@ git clone https://github.com/meta-pytorch/executorch-arduino.git \
   ~/Arduino/libraries/ExecuTorch
 ```
 
-The UNO Q also needs `Arduino_RouterBridge` for `Serial`; install it from Library Manager.
-Without it the core stops the build with an explicit `#error`.
+Library Manager pulls in `Arduino_RouterBridge` automatically — the UNO Q core needs it for
+`Serial` and stops the build with an explicit `#error` without it.
+
+## Set the link mode first
+
+**Tools → Board → Arduino UNO Q**, then **Tools → Link mode → Static**.
+
+Without it, every example fails to build:
+
+```
+Sketch too big; text section exceeds available space in board
+Compilation error: text section exceeds available space in board
+```
+
+The board defaults to **Dynamic**, and this is the first thing everyone hits. Two things
+make it easy to miss:
+
+- The setting is **per-sketch**. Opening another example puts it back to Dynamic.
+- Library examples live in a read-only folder, so the IDE may not remember the setting at
+  all. If it keeps reverting, **File → Save As** into your own sketchbook first.
+
+From the command line, put it in the FQBN:
+
+```bash
+arduino-cli compile --fqbn arduino:zephyr:unoq:link_mode=static examples/AddModel
+```
+
+Dynamic builds the sketch as a Zephyr loadable extension through a relocatable link
+(`-r`). `--gc-sections` is passed either way, but it can only work in a final link, where
+the linker has an entry point to trace reachability from; under `-r` nothing can be proven
+unreachable, so every operator in the library is kept. A loadable extension is also loaded
+into RAM, so the retained code costs RAM as well as flash. For AddModel on core 0.90.0
+that is 507,876 bytes versus 787,508.
+
+This is not something the library can fix — shipping only the operators actually
+registered (15 sources instead of 172) moves the Dynamic build by 852 bytes, and the rest
+is the runtime, FlatBuffers and CMSIS-NN.
 
 ## Use
 
@@ -62,13 +97,7 @@ void setup() {
 Start from `examples/HelloExecuTorch`, then `AddModel` for a full inference pass, then
 `KeywordSpotting` for a quantized DS-CNN using CMSIS-NN kernels.
 
-**Compile with `link_mode=static`.** The UNO Q defaults to Dynamic, which builds the
-sketch as a Zephyr loadable extension; a library this size will not start that way and
-prints nothing at all.
-
-```bash
-arduino-cli compile --fqbn arduino:zephyr:unoq:link_mode=static examples/AddModel
-```
+Each one needs Link mode set to Static, as above — it does not carry over between sketches.
 
 ExecuTorch's own diagnostics reach your sketch through a weak hook, so the library never
 has to depend on `Serial`. Implement it or lose every runtime error message:
@@ -112,14 +141,24 @@ things upstream in `pytorch/executorch` under `examples/arduino/`, then run the
 
 ## Size
 
-Measured for `arduino:zephyr:unoq:link_mode=static`, against 786,432 bytes of flash and
-131,072 bytes of RAM:
+Measured on an Arduino UNO Q, board core 0.90.0, at
+`arduino:zephyr:unoq:link_mode=static`, against 786,432 bytes of flash and 262,144 bytes
+of RAM:
 
-| Example | Flash | RAM |
-|---|---|---|
-| HelloExecuTorch | 472,756 (60%) | 3,060 (2%) |
-| AddModel | 507,688 (64%) | 11,252 (8%) |
-| KeywordSpotting | 563,480 (71%) | 33,780 (25%) |
+| Example | Flash | RAM | On hardware |
+|---|---|---|---|
+| HelloExecuTorch | 472,952 (60%) | 3,052 (1%) | `Model loaded OK!`, 1 method |
+| AddModel | 507,876 (64%) | 12,268 (4%) | `[1,2,3] + 1 = [2.00, 3.00, 4.00]` |
+| KeywordSpotting | 563,672 (71%) | 47,084 (17%) | detects `yes`, logit 8.95 |
+
+Core 0.55.2 reported a 131,072-byte RAM ceiling and 0.90.0 reports 262,144, so figures
+from before that change are not comparable.
+
+`KeywordSpotting` hands `MemoryManager` a 40 KB arena, which is bounded on both sides:
+28 KB fails `load_method` with `MemoryAllocationFailed` (0x21), and enlarging it far enough
+overruns the stack and heap Zephyr reserves before the sketch gets any — a build that can
+still run and print the right answer, which is what makes it dangerous rather than safe.
+Anything above 40 KB is untested on core 0.90.0.
 
 Registering every portable operator instead of the default set costs about 1.58 MB of
 text, which is roughly twice this board's flash. The operator set is chosen at generation
