@@ -32,10 +32,10 @@ jobs:
         shell: bash
         run: |
           SMOKE='[
-            {"fqbn":"arduino:zephyr:unoq:link_mode=static","core":"arduino:zephyr@0.55.2","deps":"Arduino_RouterBridge@0.4.3"}
+            {"fqbn":"arduino:zephyr:unoq:link_mode=static","core":"arduino:zephyr@0.90.0","deps":"Arduino_RouterBridge@0.4.3"}
           ]'
           FULL='[
-            {"fqbn":"arduino:zephyr:unoq:link_mode=static","core":"arduino:zephyr@0.55.2","deps":"Arduino_RouterBridge@0.4.3"}
+            {"fqbn":"arduino:zephyr:unoq:link_mode=static","core":"arduino:zephyr@0.90.0","deps":"Arduino_RouterBridge@0.4.3"}
           ]'
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "fqbns=$(echo "$SMOKE" | jq -c .)" >> "$GITHUB_OUTPUT"
@@ -100,6 +100,32 @@ jobs:
             arduino-cli compile --fqbn "${{ matrix.board.fqbn }}" \
               --library . --warnings default "${sketch}"
             echo "::endgroup::"
+          done
+
+      # Dynamic is the board's default and every example overflows flash that
+      # way, which is what a user hits first. Recorded rather than gated: the
+      # library cannot be made to fit, so the value is noticing if that ever
+      # changes upstream. Nightly only -- three more full compiles is a poor
+      # trade on every pull request.
+      - name: Compile examples in dynamic mode (informational)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        continue-on-error: true
+        run: |
+          FQBN="${{ matrix.board.fqbn }}"
+          DYN="${FQBN/link_mode=static/link_mode=dynamic}"
+          if [ "${DYN}" = "${FQBN}" ]; then
+            echo "no link_mode in ${FQBN}, nothing to compare"
+            exit 0
+          fi
+          for sketch in examples/*/; do
+            name=$(basename "${sketch}")
+            if arduino-cli compile --fqbn "${DYN}" --library . "${sketch}" \
+                 > "/tmp/dyn-${name}.log" 2>&1; then
+              echo "::warning::${name} now fits in dynamic mode -- the board default may work, revisit the README"
+            else
+              echo "${name}: overflows in dynamic mode, as expected"
+            fi
+            grep -iE "sketch uses|global variables" "/tmp/dyn-${name}.log" | sed 's/^/  /' || true
           done
 
   lint:
