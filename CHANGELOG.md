@@ -34,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   registered, 15 sources instead of 172, moved it 852 bytes — so this exists to notice if
   that ever changes upstream instead of rediscovering it from a bug report.
 
-## [0.1.0] — unreleased
+## [0.1.0] — 2026-08-12
 
 First release, targeting the Arduino UNO Q (STM32U585, Cortex-M33).
 
