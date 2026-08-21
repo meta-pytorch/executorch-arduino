@@ -4,7 +4,7 @@ model.h in each example was converted from a .pte exported by that same
 checkout. Do not edit either by hand; regenerate instead.
 
 executorch:  https://github.com/pytorch/executorch
-commit:      b897b1914b97b77b90f9d1cee0e0f9dd25f445b3 (tree had uncommitted changes under examples/arduino)
+commit:      d756e7d8c27e39adcd3154d95e8ff0f0163402a6
 CMSIS-NN:    dbf45dbfcc515421dd6099037d3e2637b90748c8
 op set:      aten::add.out,aten::mul.out,aten::sub.out,aten::div.out,aten::view_copy.out,aten::permute_copy.out,aten::clone.out,aten::cat.out,aten::slice_copy.Tensor_out,aten::_softmax.out,aten::mean.out,aten::relu.out,dim_order_ops::_clone_dim_order.out,dim_order_ops::_to_dim_order_copy.out
 kernels:     32
