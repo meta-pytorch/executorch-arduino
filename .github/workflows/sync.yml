@@ -22,10 +22,9 @@ on:
         description: 'ExecuTorch ref to generate from (branch, tag, or SHA)'
         required: false
         default: 'main'
-      bump:
-        description: 'Version bump: patch, minor, major, or none'
+      library_version:
+        description: 'Arduino package version (X.Y.Z); defaults to ExecuTorch version.txt'
         required: false
-        default: 'patch'
   repository_dispatch:
     types: [executorch-release]
 
@@ -43,9 +42,14 @@ jobs:
 
       - name: Resolve ExecuTorch ref
         id: ref
+        env:
+          EXECUTORCH_REF: ${{ github.event.inputs.executorch_ref || github.event.client_payload.ref || 'main' }}
         run: |
-          REF="${{ github.event.inputs.executorch_ref || github.event.client_payload.ref || 'main' }}"
-          echo "ref=${REF}" >> "$GITHUB_OUTPUT"
+          if ! git check-ref-format --allow-onelevel "${EXECUTORCH_REF}"; then
+            echo "::error::Select a valid ExecuTorch branch, tag, or SHA."
+            exit 1
+          fi
+          echo "ref=${EXECUTORCH_REF}" >> "$GITHUB_OUTPUT"
 
       - name: Checkout ExecuTorch
         uses: actions/checkout@v4
@@ -55,6 +59,23 @@ jobs:
           path: executorch
           submodules: recursive
           fetch-depth: 0
+
+      - name: Resolve versions
+        id: version
+        working-directory: executorch
+        env:
+          LIBRARY_VERSION: ${{ github.event.inputs.library_version || github.event.client_payload.library_version }}
+        run: |
+          ET_VERSION=$(cat version.txt)
+          LIBRARY_VERSION="${LIBRARY_VERSION:-$ET_VERSION}"
+          for VERSION in "$ET_VERSION" "$LIBRARY_VERSION"; do
+            if [[ ! "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+              echo "::error::ExecuTorch and Arduino package versions must be in X.Y.Z form."
+              exit 1
+            fi
+          done
+          echo "executorch_version=${ET_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "library_version=${LIBRARY_VERSION}" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-python@v5
         with:
@@ -83,6 +104,19 @@ jobs:
         working-directory: executorch/examples/arduino
         run: python verify_models.py arduino_lib/ExecuTorch
 
+      # Older ExecuTorch tags still generate 0.x library metadata.
+      - name: Set package version and record upstream version
+        env:
+          ET_VERSION: ${{ steps.version.outputs.executorch_version }}
+          LIBRARY_VERSION: ${{ steps.version.outputs.library_version }}
+        run: |
+          GEN="executorch/examples/arduino/arduino_lib/ExecuTorch"
+          sed -i "s/^version=.*/version=${LIBRARY_VERSION}/" "${GEN}/library.properties"
+          sed -i "/^version: /d; /^executorch: /a version:     ${ET_VERSION}" \
+            "${GEN}/extras/PROVENANCE.txt"
+          test "$(sed -n 's/^version=//p' "${GEN}/library.properties")" = "${LIBRARY_VERSION}"
+          test "$(cat "${GEN}/executorch_pin.txt")" = "$(git -C executorch rev-parse HEAD)"
+
       # Promote the generated tree to this repo's root: the Library Manager only
       # reads the root library.properties, so the library cannot live in a
       # subdirectory. --delete is what removes sources that upstream dropped.
@@ -97,23 +131,6 @@ jobs:
           cp "${GEN}/library.properties" ./library.properties
           cp "${GEN}/executorch_pin.txt" ./executorch_pin.txt
           rm -rf executorch
-
-      - name: Bump version
-        if: ${{ github.event.inputs.bump != 'none' }}
-        run: |
-          BUMP="${{ github.event.inputs.bump || 'patch' }}"
-          CURRENT=$(grep '^version=' library.properties | cut -d= -f2)
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-          case "$BUMP" in
-            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
-            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
-            patch) PATCH=$((PATCH + 1)) ;;
-            *) echo "unknown bump: $BUMP"; exit 1 ;;
-          esac
-          NEW="${MAJOR}.${MINOR}.${PATCH}"
-          sed -i "s/^version=.*/version=${NEW}/" library.properties
-          echo "version=${NEW}" >> "$GITHUB_ENV"
-          echo "Version: ${CURRENT} -> ${NEW}"
 
       - name: Open pull request
         uses: peter-evans/create-pull-request@v6
@@ -135,17 +152,19 @@ jobs:
             the signal is CI plus `executorch_pin.txt` and `extras/PROVENANCE.txt`.
 
             Review order:
-            1. `executorch_pin.txt` and `library.properties` — the pin moved, and the
-               version advanced (the registry rejects a tag reusing an indexed version).
-            2. `extras/PROVENANCE.txt` — ExecuTorch commit, CMSIS-NN revision, op set,
-               kernel count. A surprise here means the build inputs changed.
+            1. `executorch_pin.txt` and `library.properties` — confirm the source
+               commit and package version `${{ steps.version.outputs.library_version }}`.
+            2. `extras/PROVENANCE.txt` — ExecuTorch version
+               `${{ steps.version.outputs.executorch_version }}`, commit, CMSIS-NN
+               revision, op set and kernel count.
             3. CI — every example compiled for every board, and `arduino-lint`
                passed as a Library Manager submission.
 
-            The example models were re-exported in this same run, so they match the
-            runtime they ship with.
+            The example models were checked against the generated runtime.
 
-            To publish: merge, then tag. The registry indexes tags only, and requires
-            the tagged tree to be fully compliant.
+            To publish after CI and board validation, confirm the package version
+            is unused, merge, then tag `v${{ steps.version.outputs.library_version }}`.
+            The registry indexes tags only, and requires the tagged tree to be
+            fully compliant.
           labels: generated
           delete-branch: true

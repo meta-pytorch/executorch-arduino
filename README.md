@@ -130,6 +130,33 @@ against a different one loads, resolves every operator, and then fails inside
 `Method::execute` with `InvalidProgram (0x23)` — nothing in that error says why. The
 commit this library was generated from is in `executorch_pin.txt`.
 
+## Release versions
+
+**Sync from ExecuTorch** defaults the Arduino package version to the selected
+checkout's `version.txt`. Selecting ExecuTorch `v1.5.1`, for example, generates
+`version=1.5.1`. The existing `0.x` releases keep their original versions and pins.
+
+Maintainers can select a branch, tag or SHA; the default is `main`. The workflow
+generates the library, checks the example models, and opens a PR. A development
+checkout may already carry the next version, so use `executorch_pin.txt` and
+`extras/PROVENANCE.txt` to identify the exact source commit and runtime version.
+
+```bash
+gh workflow run sync.yml --repo meta-pytorch/executorch-arduino \
+  -f executorch_ref=v1.5.1
+```
+
+The optional `library_version` input selects an explicit Arduino package
+version in `X.Y.Z` form while preserving the upstream version in provenance.
+Maintainers decide how Arduino-only releases should be numbered. After CI and
+board validation, confirm the package version is unused, merge, and tag
+`v<library_version>` to publish.
+
+This also supports older upstream tags whose generator still writes `0.x`
+metadata. It regenerates the library before applying the package version; do
+not relabel the existing `0.2.0` sources as a newer runtime. See the upstream
+[release guide](https://github.com/pytorch/executorch/blob/main/examples/arduino/RELEASING.md).
+
 ## This repository is generated
 
 Everything under `src/` and `examples/` is build output from
