@@ -44,7 +44,7 @@ TORCH_API inline torch::executor::Tensor & cat_outf(torch::executor::KernelRunti
 
 
 // aten::clone.out(Tensor self, *, MemoryFormat? memory_format=None, Tensor(a!) out) -> Tensor(a!)
-TORCH_API inline torch::executor::Tensor & clone_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & self, torch::executor::optional<torch::executor::MemoryFormat> memory_format, torch::executor::Tensor & out) {
+TORCH_API inline torch::executor::Tensor & clone_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & self, std::optional<torch::executor::MemoryFormat> memory_format, torch::executor::Tensor & out) {
     return ::torch::executor::native::clone_out(context, self, memory_format, out);
 }
 
@@ -56,7 +56,7 @@ TORCH_API inline torch::executor::Tensor & div_outf(torch::executor::KernelRunti
 
 
 // aten::mean.out(Tensor self, int[1]? dim, bool keepdim=False, *, ScalarType? dtype=None, Tensor(a!) out) -> Tensor(a!)
-TORCH_API inline torch::executor::Tensor & mean_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & self, torch::executor::optional<torch::executor::ArrayRef<int64_t>> dim, bool keepdim, torch::executor::optional<torch::executor::ScalarType> dtype, torch::executor::Tensor & out) {
+TORCH_API inline torch::executor::Tensor & mean_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & self, std::optional<torch::executor::ArrayRef<int64_t>> dim, bool keepdim, std::optional<torch::executor::ScalarType> dtype, torch::executor::Tensor & out) {
     return ::torch::executor::native::mean_dim_out(context, self, dim, keepdim, dtype, out);
 }
 
@@ -80,7 +80,7 @@ TORCH_API inline torch::executor::Tensor & relu_outf(torch::executor::KernelRunt
 
 
 // aten::slice_copy.Tensor_out(Tensor self, int dim=0, SymInt? start=None, SymInt? end=None, SymInt step=1, *, Tensor(a!) out) -> Tensor(a!)
-TORCH_API inline torch::executor::Tensor & slice_copy_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & self, int64_t dim, torch::executor::optional<int64_t> start, torch::executor::optional<int64_t> end, int64_t step, torch::executor::Tensor & out) {
+TORCH_API inline torch::executor::Tensor & slice_copy_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & self, int64_t dim, std::optional<int64_t> start, std::optional<int64_t> end, int64_t step, torch::executor::Tensor & out) {
     return ::torch::executor::native::slice_copy_Tensor_out(context, self, dim, start, end, step, out);
 }
 
@@ -101,13 +101,13 @@ TORCH_API inline torch::executor::Tensor & view_copy_outf(torch::executor::Kerne
 namespace dim_order_ops {
 
 // dim_order_ops::_to_dim_order_copy.out(Tensor self, *, bool non_blocking=False, int[]? dim_order=None, Tensor(a!) out) -> Tensor(a!)
-TORCH_API inline torch::executor::Tensor & _to_dim_order_copy_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & self, bool non_blocking, torch::executor::optional<torch::executor::ArrayRef<int64_t>> dim_order, torch::executor::Tensor & out) {
+TORCH_API inline torch::executor::Tensor & _to_dim_order_copy_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & self, bool non_blocking, std::optional<torch::executor::ArrayRef<int64_t>> dim_order, torch::executor::Tensor & out) {
     return ::torch::executor::native::_to_dim_order_copy_out(context, self, non_blocking, dim_order, out);
 }
 
 
 // dim_order_ops::_clone_dim_order.out(Tensor self, *, bool non_blocking=False, int[]? dim_order=None, Tensor(a!) out) -> Tensor(a!)
-TORCH_API inline torch::executor::Tensor & _clone_dim_order_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & self, bool non_blocking, torch::executor::optional<torch::executor::ArrayRef<int64_t>> dim_order, torch::executor::Tensor & out) {
+TORCH_API inline torch::executor::Tensor & _clone_dim_order_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & self, bool non_blocking, std::optional<torch::executor::ArrayRef<int64_t>> dim_order, torch::executor::Tensor & out) {
     return ::torch::executor::native::_clone_dim_order_out(context, self, non_blocking, dim_order, out);
 }
 
@@ -164,7 +164,7 @@ TORCH_API inline torch::executor::Tensor & maximum_outf(torch::executor::KernelR
 
 
 // cortex_m::quantized_linear.out(Tensor input, Tensor weights, Tensor? bias, Tensor? kernel_sum, int input_offset, int filter_offset, int output_offset, int[] requantize_multipliers, int[] requantize_shifts, int activation_max, int activation_min, *, Tensor(a!) out) -> Tensor(a!)
-TORCH_API inline torch::executor::Tensor & quantized_linear_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & input, const torch::executor::Tensor & weights, const torch::executor::optional<torch::executor::Tensor> & bias, const torch::executor::optional<torch::executor::Tensor> & kernel_sum, int64_t input_offset, int64_t filter_offset, int64_t output_offset, torch::executor::ArrayRef<int64_t> requantize_multipliers, torch::executor::ArrayRef<int64_t> requantize_shifts, int64_t activation_max, int64_t activation_min, torch::executor::Tensor & out) {
+TORCH_API inline torch::executor::Tensor & quantized_linear_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & input, const torch::executor::Tensor & weights, const std::optional<torch::executor::Tensor> & bias, const std::optional<torch::executor::Tensor> & kernel_sum, int64_t input_offset, int64_t filter_offset, int64_t output_offset, torch::executor::ArrayRef<int64_t> requantize_multipliers, torch::executor::ArrayRef<int64_t> requantize_shifts, int64_t activation_max, int64_t activation_min, torch::executor::Tensor & out) {
     return ::cortex_m::native::quantized_linear_out(context, input, weights, bias, kernel_sum, input_offset, filter_offset, output_offset, requantize_multipliers, requantize_shifts, activation_max, activation_min, out);
 }
 
@@ -188,20 +188,38 @@ TORCH_API inline torch::executor::Tensor & pad_outf(torch::executor::KernelRunti
 
 
 // cortex_m::quantized_conv2d.out(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int input_offset, int output_offset, Tensor requantize_multipliers, Tensor requantize_shifts, int activation_min, int activation_max, Tensor scratch, *, Tensor(a!) out) -> Tensor(a!)
-TORCH_API inline torch::executor::Tensor & quantized_conv2d_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & input, const torch::executor::Tensor & weight, const torch::executor::optional<torch::executor::Tensor> & bias, torch::executor::ArrayRef<int64_t> stride, torch::executor::ArrayRef<int64_t> padding, torch::executor::ArrayRef<int64_t> dilation, int64_t input_offset, int64_t output_offset, const torch::executor::Tensor & requantize_multipliers, const torch::executor::Tensor & requantize_shifts, int64_t activation_min, int64_t activation_max, const torch::executor::Tensor & scratch, torch::executor::Tensor & out) {
+TORCH_API inline torch::executor::Tensor & quantized_conv2d_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & input, const torch::executor::Tensor & weight, const std::optional<torch::executor::Tensor> & bias, torch::executor::ArrayRef<int64_t> stride, torch::executor::ArrayRef<int64_t> padding, torch::executor::ArrayRef<int64_t> dilation, int64_t input_offset, int64_t output_offset, const torch::executor::Tensor & requantize_multipliers, const torch::executor::Tensor & requantize_shifts, int64_t activation_min, int64_t activation_max, const torch::executor::Tensor & scratch, torch::executor::Tensor & out) {
     return ::cortex_m::native::quantized_conv2d_out(context, input, weight, bias, stride, padding, dilation, input_offset, output_offset, requantize_multipliers, requantize_shifts, activation_min, activation_max, scratch, out);
 }
 
 
+// cortex_m::quantized_conv2d_nhwc.out(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int input_offset, int output_offset, Tensor requantize_multipliers, Tensor requantize_shifts, int activation_min, int activation_max, Tensor scratch, *, Tensor(a!) out) -> Tensor(a!)
+TORCH_API inline torch::executor::Tensor & quantized_conv2d_nhwc_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & input, const torch::executor::Tensor & weight, const std::optional<torch::executor::Tensor> & bias, torch::executor::ArrayRef<int64_t> stride, torch::executor::ArrayRef<int64_t> padding, torch::executor::ArrayRef<int64_t> dilation, int64_t input_offset, int64_t output_offset, const torch::executor::Tensor & requantize_multipliers, const torch::executor::Tensor & requantize_shifts, int64_t activation_min, int64_t activation_max, const torch::executor::Tensor & scratch, torch::executor::Tensor & out) {
+    return ::cortex_m::native::quantized_conv2d_nhwc_out(context, input, weight, bias, stride, padding, dilation, input_offset, output_offset, requantize_multipliers, requantize_shifts, activation_min, activation_max, scratch, out);
+}
+
+
 // cortex_m::quantized_depthwise_conv2d.out(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int depth_multiplier, int input_offset, int output_offset, Tensor requantize_multipliers, Tensor requantize_shifts, int activation_min, int activation_max, Tensor scratch, *, Tensor(a!) out) -> Tensor(a!)
-TORCH_API inline torch::executor::Tensor & quantized_depthwise_conv2d_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & input, const torch::executor::Tensor & weight, const torch::executor::optional<torch::executor::Tensor> & bias, torch::executor::ArrayRef<int64_t> stride, torch::executor::ArrayRef<int64_t> padding, torch::executor::ArrayRef<int64_t> dilation, int64_t depth_multiplier, int64_t input_offset, int64_t output_offset, const torch::executor::Tensor & requantize_multipliers, const torch::executor::Tensor & requantize_shifts, int64_t activation_min, int64_t activation_max, const torch::executor::Tensor & scratch, torch::executor::Tensor & out) {
+TORCH_API inline torch::executor::Tensor & quantized_depthwise_conv2d_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & input, const torch::executor::Tensor & weight, const std::optional<torch::executor::Tensor> & bias, torch::executor::ArrayRef<int64_t> stride, torch::executor::ArrayRef<int64_t> padding, torch::executor::ArrayRef<int64_t> dilation, int64_t depth_multiplier, int64_t input_offset, int64_t output_offset, const torch::executor::Tensor & requantize_multipliers, const torch::executor::Tensor & requantize_shifts, int64_t activation_min, int64_t activation_max, const torch::executor::Tensor & scratch, torch::executor::Tensor & out) {
     return ::cortex_m::native::quantized_depthwise_conv2d_out(context, input, weight, bias, stride, padding, dilation, depth_multiplier, input_offset, output_offset, requantize_multipliers, requantize_shifts, activation_min, activation_max, scratch, out);
 }
 
 
+// cortex_m::quantized_depthwise_conv2d_nhwc.out(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int depth_multiplier, int input_offset, int output_offset, Tensor requantize_multipliers, Tensor requantize_shifts, int activation_min, int activation_max, Tensor scratch, *, Tensor(a!) out) -> Tensor(a!)
+TORCH_API inline torch::executor::Tensor & quantized_depthwise_conv2d_nhwc_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & input, const torch::executor::Tensor & weight, const std::optional<torch::executor::Tensor> & bias, torch::executor::ArrayRef<int64_t> stride, torch::executor::ArrayRef<int64_t> padding, torch::executor::ArrayRef<int64_t> dilation, int64_t depth_multiplier, int64_t input_offset, int64_t output_offset, const torch::executor::Tensor & requantize_multipliers, const torch::executor::Tensor & requantize_shifts, int64_t activation_min, int64_t activation_max, const torch::executor::Tensor & scratch, torch::executor::Tensor & out) {
+    return ::cortex_m::native::quantized_depthwise_conv2d_nhwc_out(context, input, weight, bias, stride, padding, dilation, depth_multiplier, input_offset, output_offset, requantize_multipliers, requantize_shifts, activation_min, activation_max, scratch, out);
+}
+
+
 // cortex_m::quantized_transpose_conv2d.out(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] output_padding, int[] dilation, int input_offset, int output_offset, Tensor requantize_multipliers, Tensor requantize_shifts, int activation_min, int activation_max, Tensor scratch, Tensor output_scratch, *, Tensor(a!) out) -> Tensor(a!)
-TORCH_API inline torch::executor::Tensor & quantized_transpose_conv2d_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & input, const torch::executor::Tensor & weight, const torch::executor::optional<torch::executor::Tensor> & bias, torch::executor::ArrayRef<int64_t> stride, torch::executor::ArrayRef<int64_t> padding, torch::executor::ArrayRef<int64_t> output_padding, torch::executor::ArrayRef<int64_t> dilation, int64_t input_offset, int64_t output_offset, const torch::executor::Tensor & requantize_multipliers, const torch::executor::Tensor & requantize_shifts, int64_t activation_min, int64_t activation_max, const torch::executor::Tensor & scratch, const torch::executor::Tensor & output_scratch, torch::executor::Tensor & out) {
+TORCH_API inline torch::executor::Tensor & quantized_transpose_conv2d_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & input, const torch::executor::Tensor & weight, const std::optional<torch::executor::Tensor> & bias, torch::executor::ArrayRef<int64_t> stride, torch::executor::ArrayRef<int64_t> padding, torch::executor::ArrayRef<int64_t> output_padding, torch::executor::ArrayRef<int64_t> dilation, int64_t input_offset, int64_t output_offset, const torch::executor::Tensor & requantize_multipliers, const torch::executor::Tensor & requantize_shifts, int64_t activation_min, int64_t activation_max, const torch::executor::Tensor & scratch, const torch::executor::Tensor & output_scratch, torch::executor::Tensor & out) {
     return ::cortex_m::native::quantized_transpose_conv2d_out(context, input, weight, bias, stride, padding, output_padding, dilation, input_offset, output_offset, requantize_multipliers, requantize_shifts, activation_min, activation_max, scratch, output_scratch, out);
+}
+
+
+// cortex_m::quantized_transpose_conv2d_nhwc.out(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] output_padding, int[] dilation, int input_offset, int output_offset, Tensor requantize_multipliers, Tensor requantize_shifts, int activation_min, int activation_max, Tensor scratch, Tensor output_scratch, *, Tensor(a!) out) -> Tensor(a!)
+TORCH_API inline torch::executor::Tensor & quantized_transpose_conv2d_nhwc_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & input, const torch::executor::Tensor & weight, const std::optional<torch::executor::Tensor> & bias, torch::executor::ArrayRef<int64_t> stride, torch::executor::ArrayRef<int64_t> padding, torch::executor::ArrayRef<int64_t> output_padding, torch::executor::ArrayRef<int64_t> dilation, int64_t input_offset, int64_t output_offset, const torch::executor::Tensor & requantize_multipliers, const torch::executor::Tensor & requantize_shifts, int64_t activation_min, int64_t activation_max, const torch::executor::Tensor & scratch, const torch::executor::Tensor & output_scratch, torch::executor::Tensor & out) {
+    return ::cortex_m::native::quantized_transpose_conv2d_nhwc_out(context, input, weight, bias, stride, padding, output_padding, dilation, input_offset, output_offset, requantize_multipliers, requantize_shifts, activation_min, activation_max, scratch, output_scratch, out);
 }
 
 
@@ -211,9 +229,21 @@ TORCH_API inline torch::executor::Tensor & quantized_avg_pool2d_outf(torch::exec
 }
 
 
+// cortex_m::quantized_avg_pool2d_nhwc.out(Tensor input, int[] kernel_size, int[] stride, int[] padding, bool ceil_mode, int zero_point, int multiplier, int shift, Tensor scratch, *, Tensor(a!) out) -> Tensor(a!)
+TORCH_API inline torch::executor::Tensor & quantized_avg_pool2d_nhwc_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & input, torch::executor::ArrayRef<int64_t> kernel_size, torch::executor::ArrayRef<int64_t> stride, torch::executor::ArrayRef<int64_t> padding, bool ceil_mode, int64_t zero_point, int64_t multiplier, int64_t shift, const torch::executor::Tensor & scratch, torch::executor::Tensor & out) {
+    return ::cortex_m::native::quantized_avg_pool2d_nhwc_out(context, input, kernel_size, stride, padding, ceil_mode, zero_point, multiplier, shift, scratch, out);
+}
+
+
 // cortex_m::quantized_max_pool2d.out(Tensor input, int[] kernel_size, int[] stride, int[] padding, int[] dilation, bool ceil_mode, int input_zero_point, int output_zero_point, int activation_min, int activation_max, *, Tensor(a!) out) -> Tensor(a!)
 TORCH_API inline torch::executor::Tensor & quantized_max_pool2d_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & input, torch::executor::ArrayRef<int64_t> kernel_size, torch::executor::ArrayRef<int64_t> stride, torch::executor::ArrayRef<int64_t> padding, torch::executor::ArrayRef<int64_t> dilation, bool ceil_mode, int64_t input_zero_point, int64_t output_zero_point, int64_t activation_min, int64_t activation_max, torch::executor::Tensor & out) {
     return ::cortex_m::native::quantized_max_pool2d_out(context, input, kernel_size, stride, padding, dilation, ceil_mode, input_zero_point, output_zero_point, activation_min, activation_max, out);
+}
+
+
+// cortex_m::quantized_max_pool2d_nhwc.out(Tensor input, int[] kernel_size, int[] stride, int[] padding, int[] dilation, bool ceil_mode, int input_zero_point, int output_zero_point, int activation_min, int activation_max, *, Tensor(a!) out) -> Tensor(a!)
+TORCH_API inline torch::executor::Tensor & quantized_max_pool2d_nhwc_outf(torch::executor::KernelRuntimeContext & context, const torch::executor::Tensor & input, torch::executor::ArrayRef<int64_t> kernel_size, torch::executor::ArrayRef<int64_t> stride, torch::executor::ArrayRef<int64_t> padding, torch::executor::ArrayRef<int64_t> dilation, bool ceil_mode, int64_t input_zero_point, int64_t output_zero_point, int64_t activation_min, int64_t activation_max, torch::executor::Tensor & out) {
+    return ::cortex_m::native::quantized_max_pool2d_nhwc_out(context, input, kernel_size, stride, padding, dilation, ceil_mode, input_zero_point, output_zero_point, activation_min, activation_max, out);
 }
 
 
