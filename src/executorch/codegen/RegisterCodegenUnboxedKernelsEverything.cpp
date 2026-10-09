@@ -797,6 +797,58 @@ static Kernel kernels_to_register[] = {
     ),
 
     Kernel(
+        "cortex_m::quantized_conv2d_nhwc.out",
+        [](torch::executor::KernelRuntimeContext & context, Span<EValue*> stack) {
+            ET_KERNEL_CHECK_MSG(context, stack.size() == 15, InvalidProgram, /*void*/, "Expected %" ET_PRIsize_t "args received %" ET_PRIsize_t, (size_t)15, stack.size());
+            EValue& input = *stack[0];
+    	EValue& weight = *stack[1];
+    	EValue& bias = *stack[2];
+    	EValue& stride = *stack[3];
+    	EValue& padding = *stack[4];
+    	EValue& dilation = *stack[5];
+    	EValue& input_offset = *stack[6];
+    	EValue& output_offset = *stack[7];
+    	EValue& requantize_multipliers = *stack[8];
+    	EValue& requantize_shifts = *stack[9];
+    	EValue& activation_min = *stack[10];
+    	EValue& activation_max = *stack[11];
+    	EValue& scratch = *stack[12];
+    	EValue& out = *stack[13];
+    	const torch::executor::Tensor & input_base = input.to<torch::executor::Tensor>();
+    	const torch::executor::Tensor & weight_base = weight.to<torch::executor::Tensor>();
+
+    	    auto bias_opt_out = bias.toOptional<torch::executor::Tensor>();
+
+
+    	    auto stride_list_out = stride.toIntList();
+
+
+    	    auto padding_list_out = padding.toIntList();
+
+
+    	    auto dilation_list_out = dilation.toIntList();
+
+    	int64_t input_offset_base = input_offset.to<int64_t>();
+    	int64_t output_offset_base = output_offset.to<int64_t>();
+    	const torch::executor::Tensor & requantize_multipliers_base = requantize_multipliers.to<torch::executor::Tensor>();
+    	const torch::executor::Tensor & requantize_shifts_base = requantize_shifts.to<torch::executor::Tensor>();
+    	int64_t activation_min_base = activation_min.to<int64_t>();
+    	int64_t activation_max_base = activation_max.to<int64_t>();
+    	const torch::executor::Tensor & scratch_base = scratch.to<torch::executor::Tensor>();
+    	torch::executor::Tensor & out_base = out.to<torch::executor::Tensor>();
+
+
+            internal::EventTracerProfileOpScope event_tracer_op_scope(context.internal_event_tracer(), "native_call_quantized_conv2d_nhwc.out");
+            EXECUTORCH_SCOPE_PROF("native_call_quantized_conv2d_nhwc.out");
+            cortex_m::native::quantized_conv2d_nhwc_out(context, input_base, weight_base, bias_opt_out, stride_list_out, padding_list_out, dilation_list_out, input_offset_base, output_offset_base, requantize_multipliers_base, requantize_shifts_base, activation_min_base, activation_max_base, scratch_base, out_base);
+
+            internal::event_tracer_log_evalue(context.internal_event_tracer(), *stack[13]);
+
+
+        }
+    ),
+
+    Kernel(
         "cortex_m::quantized_depthwise_conv2d.out",
         [](torch::executor::KernelRuntimeContext & context, Span<EValue*> stack) {
             ET_KERNEL_CHECK_MSG(context, stack.size() == 16, InvalidProgram, /*void*/, "Expected %" ET_PRIsize_t "args received %" ET_PRIsize_t, (size_t)16, stack.size());
@@ -843,6 +895,60 @@ static Kernel kernels_to_register[] = {
             internal::EventTracerProfileOpScope event_tracer_op_scope(context.internal_event_tracer(), "native_call_quantized_depthwise_conv2d.out");
             EXECUTORCH_SCOPE_PROF("native_call_quantized_depthwise_conv2d.out");
             cortex_m::native::quantized_depthwise_conv2d_out(context, input_base, weight_base, bias_opt_out, stride_list_out, padding_list_out, dilation_list_out, depth_multiplier_base, input_offset_base, output_offset_base, requantize_multipliers_base, requantize_shifts_base, activation_min_base, activation_max_base, scratch_base, out_base);
+
+            internal::event_tracer_log_evalue(context.internal_event_tracer(), *stack[14]);
+
+
+        }
+    ),
+
+    Kernel(
+        "cortex_m::quantized_depthwise_conv2d_nhwc.out",
+        [](torch::executor::KernelRuntimeContext & context, Span<EValue*> stack) {
+            ET_KERNEL_CHECK_MSG(context, stack.size() == 16, InvalidProgram, /*void*/, "Expected %" ET_PRIsize_t "args received %" ET_PRIsize_t, (size_t)16, stack.size());
+            EValue& input = *stack[0];
+    	EValue& weight = *stack[1];
+    	EValue& bias = *stack[2];
+    	EValue& stride = *stack[3];
+    	EValue& padding = *stack[4];
+    	EValue& dilation = *stack[5];
+    	EValue& depth_multiplier = *stack[6];
+    	EValue& input_offset = *stack[7];
+    	EValue& output_offset = *stack[8];
+    	EValue& requantize_multipliers = *stack[9];
+    	EValue& requantize_shifts = *stack[10];
+    	EValue& activation_min = *stack[11];
+    	EValue& activation_max = *stack[12];
+    	EValue& scratch = *stack[13];
+    	EValue& out = *stack[14];
+    	const torch::executor::Tensor & input_base = input.to<torch::executor::Tensor>();
+    	const torch::executor::Tensor & weight_base = weight.to<torch::executor::Tensor>();
+
+    	    auto bias_opt_out = bias.toOptional<torch::executor::Tensor>();
+
+
+    	    auto stride_list_out = stride.toIntList();
+
+
+    	    auto padding_list_out = padding.toIntList();
+
+
+    	    auto dilation_list_out = dilation.toIntList();
+
+    	int64_t depth_multiplier_base = depth_multiplier.to<int64_t>();
+    	int64_t input_offset_base = input_offset.to<int64_t>();
+    	int64_t output_offset_base = output_offset.to<int64_t>();
+    	const torch::executor::Tensor & requantize_multipliers_base = requantize_multipliers.to<torch::executor::Tensor>();
+    	const torch::executor::Tensor & requantize_shifts_base = requantize_shifts.to<torch::executor::Tensor>();
+    	int64_t activation_min_base = activation_min.to<int64_t>();
+    	int64_t activation_max_base = activation_max.to<int64_t>();
+    	const torch::executor::Tensor & scratch_base = scratch.to<torch::executor::Tensor>();
+    	torch::executor::Tensor & out_base = out.to<torch::executor::Tensor>();
+
+
+            internal::EventTracerProfileOpScope event_tracer_op_scope(context.internal_event_tracer(), "native_call_quantized_depthwise_conv2d_nhwc.out");
+            EXECUTORCH_SCOPE_PROF("native_call_quantized_depthwise_conv2d_nhwc.out");
+            cortex_m::native::quantized_depthwise_conv2d_nhwc_out(context, input_base, weight_base, bias_opt_out, stride_list_out, padding_list_out, dilation_list_out, depth_multiplier_base, input_offset_base, output_offset_base, requantize_multipliers_base, requantize_shifts_base, activation_min_base, activation_max_base, scratch_base, out_base);
 
             internal::event_tracer_log_evalue(context.internal_event_tracer(), *stack[14]);
 
@@ -909,6 +1015,64 @@ static Kernel kernels_to_register[] = {
     ),
 
     Kernel(
+        "cortex_m::quantized_transpose_conv2d_nhwc.out",
+        [](torch::executor::KernelRuntimeContext & context, Span<EValue*> stack) {
+            ET_KERNEL_CHECK_MSG(context, stack.size() == 17, InvalidProgram, /*void*/, "Expected %" ET_PRIsize_t "args received %" ET_PRIsize_t, (size_t)17, stack.size());
+            EValue& input = *stack[0];
+    	EValue& weight = *stack[1];
+    	EValue& bias = *stack[2];
+    	EValue& stride = *stack[3];
+    	EValue& padding = *stack[4];
+    	EValue& output_padding = *stack[5];
+    	EValue& dilation = *stack[6];
+    	EValue& input_offset = *stack[7];
+    	EValue& output_offset = *stack[8];
+    	EValue& requantize_multipliers = *stack[9];
+    	EValue& requantize_shifts = *stack[10];
+    	EValue& activation_min = *stack[11];
+    	EValue& activation_max = *stack[12];
+    	EValue& scratch = *stack[13];
+    	EValue& output_scratch = *stack[14];
+    	EValue& out = *stack[15];
+    	const torch::executor::Tensor & input_base = input.to<torch::executor::Tensor>();
+    	const torch::executor::Tensor & weight_base = weight.to<torch::executor::Tensor>();
+
+    	    auto bias_opt_out = bias.toOptional<torch::executor::Tensor>();
+
+
+    	    auto stride_list_out = stride.toIntList();
+
+
+    	    auto padding_list_out = padding.toIntList();
+
+
+    	    auto output_padding_list_out = output_padding.toIntList();
+
+
+    	    auto dilation_list_out = dilation.toIntList();
+
+    	int64_t input_offset_base = input_offset.to<int64_t>();
+    	int64_t output_offset_base = output_offset.to<int64_t>();
+    	const torch::executor::Tensor & requantize_multipliers_base = requantize_multipliers.to<torch::executor::Tensor>();
+    	const torch::executor::Tensor & requantize_shifts_base = requantize_shifts.to<torch::executor::Tensor>();
+    	int64_t activation_min_base = activation_min.to<int64_t>();
+    	int64_t activation_max_base = activation_max.to<int64_t>();
+    	const torch::executor::Tensor & scratch_base = scratch.to<torch::executor::Tensor>();
+    	const torch::executor::Tensor & output_scratch_base = output_scratch.to<torch::executor::Tensor>();
+    	torch::executor::Tensor & out_base = out.to<torch::executor::Tensor>();
+
+
+            internal::EventTracerProfileOpScope event_tracer_op_scope(context.internal_event_tracer(), "native_call_quantized_transpose_conv2d_nhwc.out");
+            EXECUTORCH_SCOPE_PROF("native_call_quantized_transpose_conv2d_nhwc.out");
+            cortex_m::native::quantized_transpose_conv2d_nhwc_out(context, input_base, weight_base, bias_opt_out, stride_list_out, padding_list_out, output_padding_list_out, dilation_list_out, input_offset_base, output_offset_base, requantize_multipliers_base, requantize_shifts_base, activation_min_base, activation_max_base, scratch_base, output_scratch_base, out_base);
+
+            internal::event_tracer_log_evalue(context.internal_event_tracer(), *stack[15]);
+
+
+        }
+    ),
+
+    Kernel(
         "cortex_m::quantized_avg_pool2d.out",
         [](torch::executor::KernelRuntimeContext & context, Span<EValue*> stack) {
             ET_KERNEL_CHECK_MSG(context, stack.size() == 11, InvalidProgram, /*void*/, "Expected %" ET_PRIsize_t "args received %" ET_PRIsize_t, (size_t)11, stack.size());
@@ -943,6 +1107,48 @@ static Kernel kernels_to_register[] = {
             internal::EventTracerProfileOpScope event_tracer_op_scope(context.internal_event_tracer(), "native_call_quantized_avg_pool2d.out");
             EXECUTORCH_SCOPE_PROF("native_call_quantized_avg_pool2d.out");
             cortex_m::native::quantized_avg_pool2d_out(context, input_base, kernel_size_list_out, stride_list_out, padding_list_out, ceil_mode_base, zero_point_base, multiplier_base, shift_base, scratch_base, out_base);
+
+            internal::event_tracer_log_evalue(context.internal_event_tracer(), *stack[9]);
+
+
+        }
+    ),
+
+    Kernel(
+        "cortex_m::quantized_avg_pool2d_nhwc.out",
+        [](torch::executor::KernelRuntimeContext & context, Span<EValue*> stack) {
+            ET_KERNEL_CHECK_MSG(context, stack.size() == 11, InvalidProgram, /*void*/, "Expected %" ET_PRIsize_t "args received %" ET_PRIsize_t, (size_t)11, stack.size());
+            EValue& input = *stack[0];
+    	EValue& kernel_size = *stack[1];
+    	EValue& stride = *stack[2];
+    	EValue& padding = *stack[3];
+    	EValue& ceil_mode = *stack[4];
+    	EValue& zero_point = *stack[5];
+    	EValue& multiplier = *stack[6];
+    	EValue& shift = *stack[7];
+    	EValue& scratch = *stack[8];
+    	EValue& out = *stack[9];
+    	const torch::executor::Tensor & input_base = input.to<torch::executor::Tensor>();
+
+    	    auto kernel_size_list_out = kernel_size.toIntList();
+
+
+    	    auto stride_list_out = stride.toIntList();
+
+
+    	    auto padding_list_out = padding.toIntList();
+
+    	bool ceil_mode_base = ceil_mode.to<bool>();
+    	int64_t zero_point_base = zero_point.to<int64_t>();
+    	int64_t multiplier_base = multiplier.to<int64_t>();
+    	int64_t shift_base = shift.to<int64_t>();
+    	const torch::executor::Tensor & scratch_base = scratch.to<torch::executor::Tensor>();
+    	torch::executor::Tensor & out_base = out.to<torch::executor::Tensor>();
+
+
+            internal::EventTracerProfileOpScope event_tracer_op_scope(context.internal_event_tracer(), "native_call_quantized_avg_pool2d_nhwc.out");
+            EXECUTORCH_SCOPE_PROF("native_call_quantized_avg_pool2d_nhwc.out");
+            cortex_m::native::quantized_avg_pool2d_nhwc_out(context, input_base, kernel_size_list_out, stride_list_out, padding_list_out, ceil_mode_base, zero_point_base, multiplier_base, shift_base, scratch_base, out_base);
 
             internal::event_tracer_log_evalue(context.internal_event_tracer(), *stack[9]);
 
@@ -989,6 +1195,52 @@ static Kernel kernels_to_register[] = {
             internal::EventTracerProfileOpScope event_tracer_op_scope(context.internal_event_tracer(), "native_call_quantized_max_pool2d.out");
             EXECUTORCH_SCOPE_PROF("native_call_quantized_max_pool2d.out");
             cortex_m::native::quantized_max_pool2d_out(context, input_base, kernel_size_list_out, stride_list_out, padding_list_out, dilation_list_out, ceil_mode_base, input_zero_point_base, output_zero_point_base, activation_min_base, activation_max_base, out_base);
+
+            internal::event_tracer_log_evalue(context.internal_event_tracer(), *stack[10]);
+
+
+        }
+    ),
+
+    Kernel(
+        "cortex_m::quantized_max_pool2d_nhwc.out",
+        [](torch::executor::KernelRuntimeContext & context, Span<EValue*> stack) {
+            ET_KERNEL_CHECK_MSG(context, stack.size() == 12, InvalidProgram, /*void*/, "Expected %" ET_PRIsize_t "args received %" ET_PRIsize_t, (size_t)12, stack.size());
+            EValue& input = *stack[0];
+    	EValue& kernel_size = *stack[1];
+    	EValue& stride = *stack[2];
+    	EValue& padding = *stack[3];
+    	EValue& dilation = *stack[4];
+    	EValue& ceil_mode = *stack[5];
+    	EValue& input_zero_point = *stack[6];
+    	EValue& output_zero_point = *stack[7];
+    	EValue& activation_min = *stack[8];
+    	EValue& activation_max = *stack[9];
+    	EValue& out = *stack[10];
+    	const torch::executor::Tensor & input_base = input.to<torch::executor::Tensor>();
+
+    	    auto kernel_size_list_out = kernel_size.toIntList();
+
+
+    	    auto stride_list_out = stride.toIntList();
+
+
+    	    auto padding_list_out = padding.toIntList();
+
+
+    	    auto dilation_list_out = dilation.toIntList();
+
+    	bool ceil_mode_base = ceil_mode.to<bool>();
+    	int64_t input_zero_point_base = input_zero_point.to<int64_t>();
+    	int64_t output_zero_point_base = output_zero_point.to<int64_t>();
+    	int64_t activation_min_base = activation_min.to<int64_t>();
+    	int64_t activation_max_base = activation_max.to<int64_t>();
+    	torch::executor::Tensor & out_base = out.to<torch::executor::Tensor>();
+
+
+            internal::EventTracerProfileOpScope event_tracer_op_scope(context.internal_event_tracer(), "native_call_quantized_max_pool2d_nhwc.out");
+            EXECUTORCH_SCOPE_PROF("native_call_quantized_max_pool2d_nhwc.out");
+            cortex_m::native::quantized_max_pool2d_nhwc_out(context, input_base, kernel_size_list_out, stride_list_out, padding_list_out, dilation_list_out, ceil_mode_base, input_zero_point_base, output_zero_point_base, activation_min_base, activation_max_base, out_base);
 
             internal::event_tracer_log_evalue(context.internal_event_tracer(), *stack[10]);
 
