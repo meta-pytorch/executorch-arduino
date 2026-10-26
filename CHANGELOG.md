@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2026-10-26
+
+### Changed
+
+- Align the Arduino package version with the bundled ExecuTorch runtime,
+  moving from `0.2.0` to `1.5.1`.
+- Regenerate the library from ExecuTorch `v1.5.1`, commit
+  `3b60683923245cf472b7323426920e15623ba361`. Record the upstream version and
+  exact source commit in the package provenance.
+- Default the sync workflow's package version to the selected ExecuTorch
+  checkout's version, with an optional `library_version` override.
+
+### Validation
+
+- All three examples compile and run on the Arduino Uno Q with board core
+  `0.90.0`, `Arduino_RouterBridge@0.4.3`, and Static link mode. Library Manager
+  lint and model-schema verification pass.
+
 ## [0.2.0] - 2026-08-20
 
 ### Added
